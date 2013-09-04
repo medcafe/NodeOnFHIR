@@ -1,0 +1,16 @@
+{
+  "name": "fhir_data",
+  "subdomain": "fhir_data",
+  "scripts": {
+    "start": "server-http.js"
+  },
+  "version": "0.0.0-13",
+  "engines": {
+    "node": "0.8.x"
+  },
+  "dependencies": {
+    "restify": "1.4.x",
+    "mongoose": "2.6.x",
+    "connect": "2.7.4"
+  }
+}
