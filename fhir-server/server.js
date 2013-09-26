@@ -189,9 +189,9 @@ var searchResourceParams = function (req, res, next, model, resourceId, queryDef
     if( config.authorize 
         && new model().schema.path("entry.content." + resourceId + ".patient.reference.value") != undefined ) {
         
-        if( req.headers.Token )
+        if( req.headers.token )
         {
-            var user = jwt.decode(req.headers.Token.toString(),config.authenticate_secret);
+            var user = jwt.decode(req.headers.token.toString(),config.authentication_secret);
             query["entry.content." + resourceId + ".patient.reference.value"] = 'patient/@' + user.id;
         }
         else
@@ -372,7 +372,7 @@ if( config.authenticate ) {
             if (data.length) {
                 var user = data[0].entry.content.User;
                 var response = {user:user};
-                var token = jwt.encode({id: data[0]._id}, config.authenticate_secret);
+                var token = jwt.encode({id: data[0]._id}, config.authentication_secret);
                 
                 response.id = data[0]._id;
                 response.token = token;
