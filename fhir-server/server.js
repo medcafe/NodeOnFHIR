@@ -370,7 +370,7 @@ if( config.authenticate ) {
         var username = request.username;
         var password = request.password;
 
-        query = { "entry.content.User.login.text.value": username, "entry.content.User.password.value": encrypt(password) };
+        query = { "entry.content.User.login.value": username, "entry.content.User.password.value": encrypt(password) };
         
         UserMongooseModel.findOne(query).execFind(function (arr, data) {
             if (data.length) {
