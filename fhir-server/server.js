@@ -85,7 +85,7 @@ var MedicationAdministrationSchema = new Schema({entry:{content:{MedicationAdmin
 mongoose.model('MedicationAdministration', MedicationAdministrationSchema);
 var MedicationAdministrationMongooseModel = mongoose.model('MedicationAdministration');
 
-var ObservationSchema = new Schema({entry:{content:{Observation:{patient:{reference:{value:{}}}}}}});
+var ObservationSchema = new Schema({entry:{content:{Observation:{subject:{reference:{value:{}}}}}}});
 mongoose.model('Observation', ObservationSchema);
 var ObservationMongooseModel = mongoose.model('Observation');
 
@@ -159,12 +159,12 @@ var searchResource = function (req, res, next, model, resourceId) {
 /**
  * Searches a resource
  * 
- * @req Request object (restify)
- * @res Response object  (restify)
+ * @req Request object (Object)
+ * @res Response object (Object)
  * @next 
- * @model Mongoose model corresponding to the FHIR resource
- * @resourceId String representing FHIR resource
- * @queryDefinitions Object representing searchable fields
+ * @model Mongoose model corresponding to the FHIR resource (Object)
+ * @resourceId String representation of FHIR resource type (String)
+ * @queryDefinitions Definition of searchable fields (Object)
  *  {
  *      `id`: "name",                 //  parameter in request containing value to search for
  *      `field`: "name.family.value", //  path to property in @resourceId FHIR resource, after "entry.content.ResourceName."
@@ -172,14 +172,18 @@ var searchResource = function (req, res, next, model, resourceId) {
  *          `regex`: "^{{value}}.*"   //  regex for value matching, where {{value}} is replaced by request value if present
  *          `prefix`: "patient/@"     //  prefix for value matching, if not regex
  *  }
+ *  @ownerIdPath Path within schema to property specifying resource owner (String)
  */
-var searchResourceParams = function (req, res, next, model, resourceId, queryDefinitions) {
+var searchResourceParams = function (req, res, next, model, resourceId, queryDefinitions, ownerIdPath) {
 
+	ownerIdPath = ownerIdPath || "entry.content.{{resourceId}}.patient.reference.value";
+	ownerIdPath = ownerIdPath.replace( /{{resourceId}}/, resourceId);
+	
     if ('OPTIONS' == req.method) {
         res.send(203, 'OK');
     }
 
-    console.log("searchResourceParams", resourceId, req.params[0]);
+    console.log("searchResourceParams", resourceId, req.params[0], ownerIdPath);
 
     query = {};
     
@@ -187,12 +191,12 @@ var searchResourceParams = function (req, res, next, model, resourceId, queryDef
     //  add a query clause specifying that only those resources that match the access
     //  token passed in the request header
     if( config.authorize 
-        && new model().schema.path("entry.content." + resourceId + ".patient.reference.value") != undefined ) {
+        && new model().schema.path(ownerIdPath) != undefined ) {
         
         if( req.headers.token )
         {
             var user = jwt.decode(req.headers.token.toString(),config.authentication_secret);
-            query["entry.content." + resourceId + ".patient.reference.value"] = 'patient/@' + user.id;
+            query[ownerIdPath] = 'patient/@' + user.id;
         }
         else
         {
@@ -578,12 +582,13 @@ mongodbServer.get('/observation/search', function(req,res,next) {
     return searchResourceParams(
             req,res,next,ObservationMongooseModel,'Observation',
             [
-             {id:"subject",field:"subjet.reference.value",search:[{prefix:'patient/@'}]},
+             {id:"subject",field:"subject.reference.value",search:[{prefix:'patient/@'}]},
              {id:"performer",field:"performer.reference.value",search:[{regex:'((practitioner)|(patient))/@{{value}}'}]},
              {id:"subject.name",field:"subject.display.value",search:[{regex:'{{value}}',flags:'i'}]},
              {id:"performer.name",field:"performer.display.value",search:[{regex:'{{value}}',flags:'i'}]},
              {id:"name",search:[{field:"name.coding.code.value"},{field:"name.coding.code.value"},{field:"name.coding.display.value",regex:'.*{{value}}.*',flags:'i'}]}
-            ]
+            ],
+            "entry.content.{{resourceId}}.subject.reference.value"
     );
 });
 mongodbServer.get('/organization/search', function(req,res,next){
